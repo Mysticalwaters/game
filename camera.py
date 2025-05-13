@@ -11,7 +11,7 @@ class Camera:
         self.fov = fov
         self.pitch = 0.0
         self.yaw = -90.0
-        self.speed = 0.05
+        self.speed = 2.0
         self.view = glm.mat4
         self.first_mouse = True
         self.mouse_sensitivity = 0.1
@@ -20,21 +20,17 @@ class Camera:
         
         # Projection matrix (perspective)
         self.projection = glm.perspective(
-            glm.radians(45.0),  # Field of view or FOV for most people
-            800 / 600,          # Aspect ratio - Should change this to reflect a varible.
+            glm.radians(90.0),  # Field of view or FOV for most people
+            1960 / 1080,          # Aspect ratio - Should change this to reflect a varible.
             0.1,                # Near clipping plane
             100.0              # Far clipping plane - defines how much will be rendered based on max distance
         )
 
-    def updateCamera(self, activeShaders):
+    def updateCamera(self):
         self.view = glm.lookAt(
         self.pos,  # Camera position (x, y, z)
         glm.add(self.pos, self.front),  # Target (origin)
         self.up)   # Up vector
-        
-        for i in activeShaders:
-            i.setMat4Uniform("view", self.view)
-            i.setMat4Uniform("projection", self.projection)
         
     
 

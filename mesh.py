@@ -31,27 +31,43 @@ class Mesh:
     def uploadMesh(self):
         self.VAO = glGenVertexArrays(1)
         glBindVertexArray(self.VAO)
-        self.vboId[0] = loadVertexBuffer(self.vertices.ptr, self.vertices.nbytes, False)
+        self.vboId[0] = loadVertexBuffer(self.vertices, self.vertices.nbytes, False)
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0)  # 3 floats per vertex
         glEnableVertexAttribArray(0)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
     
-    def draw(self, position, size):
-        #Pass model to shader and enable shader
+    def draw(self, position, size, view, projection):
         self.shader.use()
         self.model = glm.mat4(1.0)
         self.translate(position)
-        #self.scale(size)
         self.shader.setMat4Uniform("model", self.model)
-
+        self.shader.setMat4Uniform("view", view)
+        self.shader.setMat4Uniform("projection", projection)
         glBindVertexArray(self.VAO)
         glDrawArrays(GL_TRIANGLES, 0, self.vertexCount)
 
 #Creates a mesh() of a plane using the width and height. ResX and y represent the number of subdivions in the mesh, based off of raylibs source code
-def createPlaneMesh(resX, resZ, width, length):
-    resX += 1
+def createPlaneMesh(size=1):
+    half_size = size / 2.0
+    
+    vertices = numpy.array([
+    -half_size, 0.0, -half_size,
+     half_size, 0.0, -half_size,
+     half_size, 0.0,  half_size,
+    -half_size, 0.0, -half_size,
+     half_size, 0.0,  half_size,
+    -half_size, 0.0,  half_size
+    ], dtype=numpy.float32)
+
+    mesh = Mesh()
+    mesh.vertices = vertices
+    mesh.vertexCount = 6
+    mesh.uploadMesh()
+    return mesh
+
+    """resX += 1
     resZ += 1
 
     vertexCount = resX*resZ
@@ -67,6 +83,6 @@ def createPlaneMesh(resX, resZ, width, length):
     mesh.vertexCount = vertexCount
     mesh.vertices = vertices
     mesh.uploadMesh()
-    return mesh
+    return mesh"""
    
             
