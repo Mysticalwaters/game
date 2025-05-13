@@ -47,7 +47,8 @@ out vec4 FragColor;
 in vec2 TexCoord;
 uniform sampler2D uTexture;
 void main() {
-    vec3 baseColour = vec3(0.3, 0.3, 0.6);
+    vec4 textColour = texture(uTexture, TexCoord);
+    vec3 baseColour = vec3(0.2, 0.2, 0.6);
     FragColor = vec4(baseColour, 1.0);
 }
 """
@@ -251,14 +252,15 @@ def main():
     last_fps_time = 0.0
     fps = 0.0
     listWaterTiles = []
-    
-    for x in range(1):
-        for z in range(1):
-            water = Model(x * 10, 0, z * 10, basicShader)
-            water.Mesh = create_plane(40, 40, 10)
+    waterSize = 10
+    waterTexture = loadTexture("waterTexture.png")
+    for x in range(3):
+        for z in range(3):
+            water = Model(x *waterSize, 0, z * waterSize, basicShader)
+            water.Mesh = create_plane(80, 80, waterSize)
             listWaterTiles.append(water)
             #
-            # water.texture = waterTexture
+            #water.texture = waterTexture
     #glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
     # Main loop - Can be seen as the rendering loop, this is where most shader and draw calls will be made!
     while not glfw.window_should_close(window):
