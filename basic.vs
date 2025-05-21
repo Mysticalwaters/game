@@ -7,8 +7,8 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform float time;
 
-const float waveHeight = 0.15;
-const float waveSpeed = 1.0;
+const float waveHeight = 0.12;
+const float waveSpeed = 1.5;
 const float waveScale = 1.0;  // Adjusts wave frequency
 
 out vec2 TexCoord;
