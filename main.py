@@ -1,63 +1,23 @@
-import glfw
-from OpenGL.GL import *
-import numpy as np
-import glm
 import string
+import time
+
+import glfw
+import glm
+import numpy as np
+from OpenGL.GL import *
+
 import camera
 from mesh import *
-import time
 from texture import *
 
 view = 0
 proj = 0
 
-vertex_shader_source = """
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout(location=1) in vec2 aTexCoord;
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
-uniform float time;
-
-const float waveHeight = 0.2;
-const float waveSpeed = 1.0;
-const float waveScale = 1.0;  // Adjusts wave frequency
-
-out vec2 TexCoord;
-
-void main() {
-    // Get the world position by transforming the vertex
-    vec4 worldPos = model * vec4(aPos, 1.0);
-    
-    // Calculate waves using world coordinates
-    float wave1 = sin(time * waveSpeed + (worldPos.x + worldPos.z) * waveScale) * waveHeight;
-    float wave2 = sin(time * waveSpeed * 0.7 + (worldPos.x - worldPos.z) * waveScale * 1.3) * waveHeight * 0.5;
-    
-    // Apply waves to y coordinate
-    vec3 finalPos = vec3(aPos.x, wave1 + wave2, aPos.z);
-    gl_Position = projection * view * model * vec4(finalPos, 1.0);
-    TexCoord = aTexCoord;
-}
-"""
-
-fragment_shader_source = """
-#version 330 core
-out vec4 FragColor;
-in vec2 TexCoord;
-uniform sampler2D uTexture;
-void main() {
-    vec4 textColour = texture(uTexture, TexCoord);
-    vec3 baseColour = vec3(0.2, 0.2, 0.6);
-    FragColor = vec4(baseColour, 1.0);
-}
-"""
-
 activeShaders = []
 
 class Shader:
-    def __init__(self, vsSource : string, fsSource : string):
-        self.__program = self.__createShaderProgram(vsSource, fsSource)
+    def __init__(self, vsPath="basic.vs", fsPath="basic.fs"):
+        self.__program = self.__createShaderProgram(vsPath, fsPath)
         activeShaders.append(self)
     
     #Function quite simply takes shader source code and uploads it to the GPU
@@ -71,10 +31,15 @@ class Shader:
             raise RuntimeError(glGetShaderInfoLog(shader))
         #else we return the shader so that we can make a shader program
         return shader
+    @staticmethod
+    def __loadShader(fp : string):
+        with open(fp, "rb") as fp:
+            content = fp.read()
+            return content
 
-    def __createShaderProgram(self, vsSource : string, fsSource : string):
-        vertexShader = self.__compileShader(GL_VERTEX_SHADER, vsSource)
-        fragShader = self.__compileShader(GL_FRAGMENT_SHADER, fsSource)
+    def __createShaderProgram(self, vsPath="basic.vs", fsPath="basic.fs"):
+        vertexShader = self.__compileShader(GL_VERTEX_SHADER, self.__loadShader(vsPath))
+        fragShader = self.__compileShader(GL_FRAGMENT_SHADER, self.__loadShader(fsPath))
         program = glCreateProgram()
 
         glAttachShader(program, vertexShader)
@@ -101,7 +66,7 @@ class Shader:
         if loc == -1:
             print(f"Warning: Uniform '{location}' not found in shader!")
             return
-        glUniform3fv(loc, 1, GL_FALSE, glm.value_ptr(value))
+        glUniform3fv(loc, 1, glm.value_ptr(value))
 
     def setFloat(self, location: string, value: float):
         loc = glGetUniformLocation(self.__program, location)
@@ -145,10 +110,12 @@ class Model:
         self.shader.setMat4Uniform("model", glm.translate(glm.mat4(1.0), self.pos))
         self.shader.setMat4Uniform("view", view)
         self.shader.setMat4Uniform("projection", proj)
+        self.shader.setVec3Uniform("light.ambient", glm.vec3(0.2, 0.2, 0.2))
+        self.shader.setVec3Uniform("light.direction", glm.vec3(-0.2, -1.0, -0.3))
+        self.shader.setVec3Uniform("light.diffuse", glm.vec3(0.5, 0.5, 0.5))
         if self.texture != None:
             glActiveTexture(GL_TEXTURE0)
             glBindTexture(GL_TEXTURE_2D, self.texture)
-            self.shader.setInt("uTexture", 0)
         glBindVertexArray(self.Mesh.VAO)
         glDrawElements(GL_TRIANGLES, self.Mesh.indicies, GL_UNSIGNED_INT, None)  
 
@@ -188,9 +155,9 @@ def create_plane(resX=10, resZ=10, size=5.0) -> Mesh:
         for x in range(resX):
             xpos = -half_size + x * stepX
             zpos = -half_size + z * stepZ
-            u = ((xpos + half_size)/size) * 16
-            v = ((zpos + half_size)/size) * 16
-            vertices.extend([xpos, 0.0, zpos, u, v])  # Flat plane on y=0
+            u = ((xpos + half_size)/size) * 8
+            v = ((zpos + half_size)/size) * 8
+            vertices.extend([xpos, 0.0, zpos, u, v, 0.0, 1.0, 0.0])  # Flat plane on y=0
 
     # Generate indices for triangle list
     indices = []
@@ -222,11 +189,14 @@ def create_plane(resX=10, resZ=10, size=5.0) -> Mesh:
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL_STATIC_DRAW)
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * 4, ctypes.c_void_p(0))
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * 4, ctypes.c_void_p(0))
     glEnableVertexAttribArray(0)
 
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * 4, ctypes.c_void_p(3 * 4))
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * 4, ctypes.c_void_p(3 * 4))
     glEnableVertexAttribArray(1)
+
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * 4, ctypes.c_void_p(5 * 4))
+    glEnableVertexAttribArray(2)
 
     glBindVertexArray(0)
     mesh = Mesh()
@@ -237,9 +207,9 @@ def create_plane(resX=10, resZ=10, size=5.0) -> Mesh:
     return mesh
 
 def main():
-    cam = camera.Camera(glm.vec3(0.0, 1.0, 3.0), 45.0)
+    cam = camera.Camera(glm.vec3(45.0, 1.0, 45.0), 45.0)
     window = createWindow("My fishing game!", (1960, 1080), cam)
-    basicShader = Shader(vertex_shader_source, fragment_shader_source)
+    basicShader = Shader()
     model = glm.mat4(1.0)  # Identity matrix
     
     
@@ -252,21 +222,20 @@ def main():
     last_fps_time = 0.0
     fps = 0.0
     listWaterTiles = []
-    waterSize = 10
     waterTexture = loadTexture("waterTexture.png")
-    for x in range(3):
-        for z in range(3):
-            water = Model(x *waterSize, 0, z * waterSize, basicShader)
-            water.Mesh = create_plane(80, 80, waterSize)
+    for x in range(9):
+        for z in range(9):
+            water = Model(x * 10, 0, z * 10, basicShader)
+            water.Mesh = create_plane(40, 40, 10)
             listWaterTiles.append(water)
             #
-            #water.texture = waterTexture
+            water.texture = waterTexture
     #glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
     # Main loop - Can be seen as the rendering loop, this is where most shader and draw calls will be made!
     while not glfw.window_should_close(window):
         #Set fps to 75
         #time.sleep(1 / frameRate)
-        glClearColor(0.0, 0.0, 0.0, 1.0)  # RGBA (Red)
+        glClearColor(135/255, 206/255, 235/255, 1.0)  # RGBA (Red)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         currentTime = glfw.get_time()
@@ -289,6 +258,7 @@ def main():
         view = cam.view
         proj = cam.projection
         basicShader.setFloat("time", currentTime)
+        basicShader.setVec3Uniform("viewPos", cam.pos)
         for i in listWaterTiles:
             i.draw()
 

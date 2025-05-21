@@ -1,0 +1,54 @@
+#version 330 core
+layout (location = 0) in vec3 aPos;
+layout(location=1) in vec2 aTexCoord;
+layout(location=2) in vec3 aNormal;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+uniform float time;
+
+// Wave parameters
+uniform float waveHeight = 0.25;
+uniform float waveSpeed = 1.0;
+uniform float waveScale = 1.0;
+uniform vec2 waveDirection1 = vec2(1.0, 0.8);
+uniform vec2 waveDirection2 = vec2(-0.7, 0.6);
+uniform float depthAttenuation = 0.1;
+
+out vec2 TexCoord;
+out vec3 Normal;
+out vec3 FragPos;
+
+vec3 gerstnerWave(vec2 pos, float amplitude, float frequency, float speed, vec2 direction) {
+    float phase = speed * frequency;
+    float fi = frequency * dot(direction, pos) + time * phase;
+    float wa = amplitude * sin(fi);
+    float wb = amplitude * cos(fi) * 0.3;  // Steepness factor
+    
+    return vec3(direction.x * wb, wa, direction.y * wb);
+}
+
+void main() {
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+    
+    // Calculate waves
+    vec3 wave1 = gerstnerWave(worldPos.xz, waveHeight, 0.5, waveSpeed, waveDirection1);
+    vec3 wave2 = gerstnerWave(worldPos.xz, waveHeight*0.8, 0.7, waveSpeed*1.2, waveDirection2);
+    vec3 waveOffset = wave1 + wave2;
+    
+    // Depth attenuation
+    float depthFactor = exp(-worldPos.y * depthAttenuation);
+    waveOffset *= depthFactor;
+    
+    // Calculate normals
+    vec3 tangent = vec3(1.0, wave1.x + wave2.x, 0.0);
+    vec3 binormal = vec3(0.0, wave1.z + wave2.z, 1.0);
+    Normal = mat3(transpose(inverse(model))) * normalize(cross(binormal, tangent));
+    
+    // Apply waves
+    vec3 finalPos = aPos + waveOffset;
+    gl_Position = projection * view * model * vec4(finalPos, 1.0);
+    TexCoord = aTexCoord;
+}
