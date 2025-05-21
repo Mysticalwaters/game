@@ -5,6 +5,7 @@ import glfw
 import glm
 import numpy as np
 from OpenGL.GL import *
+import pygame
 
 import camera
 from mesh import *
@@ -212,7 +213,13 @@ def main():
     basicShader = Shader()
     model = glm.mat4(1.0)  # Identity matrix
     
-    
+    pygame.mixer.init()
+    pygame.mixer.set_num_channels(8)
+
+    sound = pygame.mixer.Sound("ambientAudio.mp3")
+    sound.set_volume(1.0)
+    channel = pygame.mixer.find_channel()
+    channel.play(sound, loops=-1)
     
     deltatime = 0.0
     lastframe = 0.0
