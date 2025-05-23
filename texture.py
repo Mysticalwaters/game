@@ -3,22 +3,23 @@ from OpenGL.GL import *
 import glfw
 import numpy
 
-def loadImage(filePath):
+def loadImage(filePath, flip=True):
     image = Image.open(filePath)
 
     if image.mode != "RGBA":
         image.convert("RGBA")
 
-    image = image.transpose(Image.FLIP_TOP_BOTTOM)
+    if flip:
+        image = image.transpose(Image.FLIP_TOP_BOTTOM)
     imageData = numpy.array(image, dtype=numpy.uint8)
     return imageData, image.width, image.height
 
 
-def loadTexture(filePath):
+def loadTexture(filePath, flip=True):
     textureId = glGenTextures(1)
     glBindTexture(GL_TEXTURE_2D, textureId)
 
-    imageData, imageWidth, imageHeight = loadImage(filePath)
+    imageData, imageWidth, imageHeight = loadImage(filePath, flip)
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)

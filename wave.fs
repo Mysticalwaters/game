@@ -41,7 +41,7 @@ void main() {
         discard;
     }
     vec3 norm = normalize(Normal);
-    vec4 textureColour = texture(material.diffuse, TexCoord);
+    vec4 textureColour = texture(material.diffuse, TexCoord * 4 + (time * speed));
     vec3 ambient = light.ambient*textureColour.rgb;
     vec3 lightDir = normalize(-light.direction);
     float diff = max(dot(norm, lightDir), 0.0);

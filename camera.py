@@ -51,8 +51,11 @@ class Camera:
 
         if glfw.get_key(window, glfw.KEY_D) == glfw.PRESS:
             self.pos = glm.add(self.pos, glm.mul(glm.normalize(glm.cross(self.front, self.up)), (self.speed * deltatime)))
+        if glfw.get_key(window, glfw.KEY_SPACE) == glfw.PRESS:
+            self.pos.y = glm.add(self.pos.y, (self.speed * deltatime))
+        if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
+            self.pos.y = glm.sub(self.pos.y, (self.speed * deltatime))
 
-    
     def mouse_callback(self, window, xpos, ypos):
         if self.first_mouse:
             self.last_x = xpos
